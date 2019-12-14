@@ -1,0 +1,47 @@
+#!/bin/bash
+LUCKY_VERSIONS=$(curl -s \
+  https://api.github.com/repos/luckyframework/lucky_cli/tags |
+  json_pp |
+  grep '"name"' |
+  grep -o '[0-9]\.[^"]\+' |
+  tac -
+)
+
+for version in $LUCKY_VERSIONS; do
+  prerelease=$(echo $version | grep -o "[^0-9.]*")
+  crystal_version=$(curl -sL \
+    https://github.com/luckyframework/lucky_cli/raw/v$version/shard.yml |
+    grep 'crystal:' |
+    grep -o '[0-9]\.[^"]\+'
+  )
+
+  if [ "${SOURCE_BRANCH:-master}" == "master" ]; then
+    base_tag="${DOCKER_REPO:-erlend/lucky}:"
+  else
+    base_tag="${IMAGE_NAME:-erlend/lucky:full}-"
+  fi
+  tag="$base_tag$version"
+
+  build_args="--build-arg CRYSTAL_VERSION=$crystal_version"
+  build_args="$build_args --build-arg LUCKY_VERSION=$version"
+
+  echo
+  echo "Attempting to fetch existing image"
+  docker pull $tag 2>/dev/null
+
+  echo
+  echo "Building $tag with Crystal $crystal_version"
+  docker build $build_args -t $tag .
+
+  echo
+  echo "Pushing $tag"
+  docker push $tag
+
+  if [ -z "$latest_tag" ] && [ -z "$prerelease" ]; then
+    latest_tag=${base_tag:0:-1}
+    echo
+    echo "Tagging latest version $version"
+    docker tag $tag $latest_tag
+    docker push $latest_tag
+  fi
+done
