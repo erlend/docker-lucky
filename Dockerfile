@@ -18,5 +18,9 @@ RUN wget -O- https://api.github.com/repos/luckyframework/lucky_cli/tarball/v$LUC
     crystal build src/lucky.cr --release -o /usr/local/bin/lucky && \
     cd - && rm -rf luckyframework*
 
-# Don't fail the setup script due to missing Procfile handler
+# Lucky's test to see if port 3001 is available does not work with BusyBox's
+# lsof and ps. If you need lsof you'll have to run `busybox lsof`.
+RUN rm $(which lsof)
+
+# Skip check for process runner when running script/setup.
 ENV CI=yes
