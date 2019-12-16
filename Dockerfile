@@ -7,7 +7,11 @@ RUN apk add --no-cache \
       musl-dev \
       openssl-dev \
       yaml-dev \
-      zlib-dev
+      zlib-dev \
+      lsof
+
+# Add wrapper for ps that supports the p argument used by `lucky watch`
+COPY bin/ps /bin/
 
 # Install Lucky CLI
 ARG LUCKY_VERSION="0.18.2"
@@ -18,9 +22,6 @@ RUN wget -O- https://api.github.com/repos/luckyframework/lucky_cli/tarball/v$LUC
     crystal build src/lucky.cr --release -o /usr/local/bin/lucky && \
     cd - && rm -rf luckyframework*
 
-# Lucky's test to see if port 3001 is available does not work with BusyBox's
-# lsof and ps. If you need lsof you'll have to run `busybox lsof`.
-RUN rm $(which lsof)
 
 # Skip check for process runner when running script/setup.
 ENV CI=yes

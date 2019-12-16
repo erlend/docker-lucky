@@ -1,0 +1,9 @@
+#!/bin/sh
+# Add support for the `p` argument to busybox's ps.
+ps="/bin/busybox ps"
+
+if [ "$1" = "p" ]; then
+  $ps | grep "^\(PID\|\s*$2\s\)"
+else
+  exec $ps $@
+fi
